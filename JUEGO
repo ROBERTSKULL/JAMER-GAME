@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farol Musical</title>
+<style>
+  body{margin:0;font-family:sans-serif;background:#0f1720;color:#e6eef6;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;}
+  h1,h2{margin:10px 0;text-align:center;}
+  button{padding:8px 12px;margin:4px;background:#06b6d4;color:#042027;border:none;border-radius:6px;cursor:pointer;font-weight:600;}
+  button.secondary{background:#0b1220;border:1px solid #06b6d4;color:#06b6d4;}
+  input[type=text]{padding:6px 8px;margin:4px;border-radius:6px;border:1px solid #06b6d4;background:#0b1220;color:#e6eef6;}
+  .hidden{display:none;}
+  .card{background:rgba(255,255,255,0.05);padding:20px;border-radius:12px;margin:12px;width:90%;max-width:500px;text-align:center;}
+  ul{list-style:none;padding:0;}
+  li{margin:6px 0;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px;}
+  iframe{border:none;border-radius:6px;margin:8px 0;}
+  .vote-btn{margin:4px;}
+  .status{margin:8px 0;font-weight:bold;}
+  .small {font-size:0.9rem;color:#c7d7e6;}
+</style>
+</head>
+<body>
+
+<h1>🎵 Farol Musical</h1>
+
+<!-- Pantalla: Jugadores -->
+<div class="card" id="screen-players">
+  <h2>1️⃣ Añadir jugadores</h2>
+  <input type="text" id="playerName" placeholder="Nombre del jugador">
+  <button onclick="addPlayer()">Añadir jugador</button>
+  <ul id="playerList"></ul>
+  <button onclick="goSongs()">Siguiente → Añadir canciones</button>
+</div>
+
+<!-- Pantalla: Canciones -->
+<div class="card hidden" id="screen-songs">
+  <h2>2️⃣ Añadir canciones</h2>
+  <div class="status" id="currentPlayer">Jugador actual:</div>
+  <input type="text" id="songUrl" placeholder="URL de YouTube de la canción">
+  <button onclick="addSong()">Añadir canción</button>
+  <div class="status" id="songCount">Canciones añadidas:</div>
+  <div class="small" id="songHint">Cada jugador añade 1 canción por ronda.</div>
+</div>
+
+<!-- Pantalla: Juego -->
+<div class="card hidden" id="screen-game">
+  <h2>3️⃣ Juego en marcha</h2>
+  <div id="playerTurn" class="status"></div>
+  <div id="playerPattern" class="status"></div>
+  <div id="playerPoints" class="status"></div>
+  <div id="playerVote" class="status"></div>
+  <div id="playerSong">
+    <div id="playerSongContainer"></div>
+  </div>
+  <div id="voteButtons"></div>
+</div>
+
+<!-- Pantalla: Resultados -->
+<div class="card hidden" id="screen-results">
+  <h2>🏆 Resultados</h2>
+  <ul id="resultsList"></ul>
+  <button onclick="location.reload()">🔄 Jugar de nuevo</button>
+</div>
+
+<script>
+let players = [], songs = [], currentSongIndex = 0;
+let currentRound = 0;
+const patterns = ["Género","Década","Artista","Nacionalidad"];
+let currentPattern = "";
+let currentSongOwner = 0;
+
+// Votación por turnos
+let votingTurn = 0; // índice del jugador que vota en este momento
+
+// --- Jugadores ---
+function addPlayer(){
+  const name = document.getElementById('playerName').value.trim();
+  if(!name) return;
+  players.push({name, points:0});
+  document.getElementById('playerName').value = '';
+  renderPlayers();
+}
+function renderPlayers(){
+  const ul = document.getElementById('playerList');
+  ul.innerHTML = '';
+  players.forEach((p,i)=>{
+    const li = document.createElement('li');
+    li.textContent = `${i+1}. ${p.name} — ${p.points} pts`;
+    ul.appendChild(li);
+  });
+}
+function goSongs(){
+  if(players.length < 2){ alert('Añade al menos 2 jugadores'); return; }
+  // Preparar para añadir canciones: se añadirán rounds * players.length canciones
+  currentRound = 0;
+  currentPattern = patterns[currentRound];
+  currentSongOwner = 0;
+  songs = []; // empezar con lista vacía y acumular
+  updateSongUI();
+  show('screen-songs');
+}
+
+// --- Canciones ---
+function updateSongUI(){
+  const ownerName = players[currentSongOwner] ? players[currentSongOwner].name : '—';
+  document.getElementById('currentPlayer').textContent =
+    `Ronda ${currentRound+1} (${currentPattern}) → Añadiendo canción de: ${ownerName}`;
+  // contar cuántas canciones por jugador en total ya existen
+  const totalAdded = songs.length;
+  document.getElementById('songCount').textContent = `Canciones añadidas: ${totalAdded} / ${players.length * patterns.length}`;
+}
+function addSong(){
+  const url = document.getElementById('songUrl').value.trim();
+  if(!url) return;
+  // Guardar la canción con su owner y pattern actual
+  songs.push({url, owner: currentSongOwner, pattern: currentPattern});
+  document.getElementById('songUrl').value = '';
+  // Avanzar al siguiente jugador para que añada su canción en esta ronda
+  currentSongOwner++;
+  if(currentSongOwner >= players.length){
+    // se completó la ronda actual
+    currentRound++;
+    if(currentRound >= patterns.length){
+      // todas las rondas completadas -> iniciar juego
+      startGame();
+      return;
+    } else {
+      currentPattern = patterns[currentRound];
+      currentSongOwner = 0;
+    }
+  }
+  updateSongUI();
+}
+
+// --- Juego ---
+function startGame(){
+  if(songs.length === 0){
+    alert('No hay canciones. Añade al menos una canción.');
+    show('screen-songs');
+    return;
+  }
+  // aleatorizar canciones
+  songs.sort(()=>Math.random()-0.5);
+  currentSongIndex = 0;
+  votingTurn = 0;
+  // resetear puntos por si se jugó antes (opcional)
+  players.forEach(p=>p.points = 0);
+  show('screen-game');
+  loadSong();
+}
+function getYouTubeId(url){
+  try {
+    const u = url.trim();
+    const idCandidate = u.split('?')[0].split('/').pop();
+    if(/^[A-Za-z0-9_-]{11}$/.test(idCandidate)) return idCandidate;
+    const vMatch = u.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+    if(vMatch) return vMatch[1];
+    const shortMatch = u.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
+    if(shortMatch) return shortMatch[1];
+    const embedMatch = u.match(/embed\/([A-Za-z0-9_-]{11})/);
+    if(embedMatch) return embedMatch[1];
+    return idCandidate;
+  } catch(e){ return url; }
+}
+function loadSong(){
+  const song = songs[currentSongIndex];
+  const videoId = getYouTubeId(song.url);
+  document.getElementById('playerSongContainer').innerHTML = `<iframe width="300" height="200" src="https://www.youtube.com/embed/${videoId}?autoplay=1" allow="autoplay"></iframe>`;
+  document.getElementById('playerTurn').textContent = `Canción actual: ${currentSongIndex+1} / ${songs.length}`;
+  document.getElementById('playerPattern').textContent = `Patrón: ${song.pattern}`;
+  updatePointsUI();
+  votingTurn = 0; // empezar votaciones para esta canción desde el jugador 0
+  renderVotes();
+}
+function updatePointsUI(){
+  document.getElementById('playerPoints').textContent = 'Puntos: ' + players.map(p=>`${p.name} (${p.points})`).join(' · ');
+}
+function renderVotes(){
+  const div = document.getElementById('voteButtons');
+  div.innerHTML = '';
+  const song = songs[currentSongIndex];
+  document.getElementById('playerVote').textContent = `Votante: ${players[votingTurn].name} (turno ${votingTurn+1}/${players.length})`;
+  // crear botones para elegir a quien se piensa que es el autor
+  players.forEach((p,i)=>{
+    const btn = document.createElement('button');
+    btn.textContent = p.name;
+    btn.className = 'vote-btn';
+    btn.onclick = ()=>castVote(i);
+    div.appendChild(btn);
+  });
+}
+function castVote(chosenIndex){
+  const song = songs[currentSongIndex];
+  // regla: si el votante acierta (elige al owner) -> votante +1; si falla -> owner +1
+  if(chosenIndex === song.owner){
+    players[votingTurn].points++;
+  } else {
+    players[song.owner].points++;
+  }
+  votingTurn++;
+  updatePointsUI();
+  if(votingTurn >= players.length){
+    // se completaron las votaciones para esta canción -> pasar a la siguiente canción
+    currentSongIndex++;
+    if(currentSongIndex >= songs.length){
+      showResults();
+    } else {
+      loadSong();
+    }
+  } else {
+    renderVotes(); // siguiente votante
+  }
+}
+
+// --- Resultados ---
+function showResults(){
+  show('screen-results');
+  const ul = document.getElementById('resultsList');
+  ul.innerHTML = '';
+  // ordenar copia para mostrar ranking
+  const ranking = [...players].sort((a,b)=>b.points-a.points);
+  ranking.forEach((p,i)=>{
+    const li = document.createElement('li');
+    li.textContent = `${i+1}. ${p.name}: ${p.points} puntos`;
+    ul.appendChild(li);
+  });
+}
+
+// --- Utilidades ---
+function show(screen){
+  ['screen-players','screen-songs','screen-game','screen-results'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.add('hidden');
+  });
+  const target = document.getElementById(screen);
+  if(target) target.classList.remove('hidden');
+}
+</script>
+</body>
+</html>
