@@ -4,87 +4,127 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JAMBER GAME</title>
-<link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Comic Neue',cursive;}
-body{background:linear-gradient(135deg,#FF7E5F,#FD3A69);color:#fff;display:flex;justify-content:center;align-items:flex-start;height:100vh;}
-main{width:95%;max-width:1200px;margin-top:20px;display:flex;gap:20px;}
-.panel{flex:2;background:rgba(255,255,255,0.05);padding:20px;border-radius:15px;box-shadow:0 5px 20px rgba(0,0,0,0.3);}
-header{display:flex;align-items:center;gap:15px;margin-bottom:20px;}
-header img{width:60px;}
-header h1{font-size:36px;text-transform:uppercase;color:#FFE156;}
-.section{margin-bottom:20px;}
-.section h2{color:#FFD460;margin-bottom:10px;}
-input,button{padding:8px 12px;border-radius:8px;border:none;font-size:16px;}
-input{width:70%;margin-right:8px;}
-button{cursor:pointer;font-weight:bold;}
-#addPlayerBtn,#addSongBtn,#nextPlayerBtn,#startGameBtn{background:#FFD460;color:#333;}
-#nextPlayerBtn,#startGameBtn,#guessSection,#replaySection{display:none;}
-ul{list-style:none;max-height:200px;overflow-y:auto;}
-li{background:rgba(255,255,255,0.1);padding:8px 10px;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;}
-li span.title{font-weight:700;color:#fff;}
-li button{background:#FF4E50;border:none;padding:2px 6px;border-radius:5px;cursor:pointer;color:#fff;font-weight:bold;}
-#playerContainer,#guessSection,#replaySection{margin-top:20px;}
-#playerContainer input,#guessSection button,#replaySection button{margin-top:5px;}
-#playerIframe{width:100%;height:360px;border:none;border-radius:10px;margin-bottom:15px;}
-.score-panel{flex:1;background:rgba(0,0,0,0.2);padding:20px;border-radius:15px;height:min-content;}
-.score-panel h2{text-align:center;margin-bottom:15px;color:#FFE156;}
-table{width:100%;border-collapse:collapse;}
-th,td{padding:8px;text-align:center;}
-th{background:#FF4E50;}
-td{background:rgba(255,255,255,0.2);}
-.guess-box{background:rgba(255,255,255,0.2);padding:15px;border-radius:10px;margin-bottom:10px;text-align:center;}
-.guess-box h3{margin-bottom:10px;color:#FFE156;}
-.guess-buttons button{margin:5px;background:#FFD460;color:#333;font-weight:bold;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;}
+body {
+  margin:0;
+  font-family: 'Comic Sans MS', 'Arial', sans-serif;
+  background: linear-gradient(135deg,#ffb347,#ffcc33);
+  color:#333;
+}
+header {
+  display:flex;
+  align-items:center;
+  padding:20px;
+  background:#ff6f61;
+  color:white;
+  font-size:2rem;
+  font-weight:bold;
+}
+header img {
+  width:50px;
+  height:50px;
+  margin-left:15px;
+}
+.section {
+  padding:20px;
+}
+input, button, select {
+  font-size:1rem;
+  padding:8px;
+  border-radius:6px;
+  border:none;
+  margin:5px 0;
+}
+button {
+  cursor:pointer;
+  background:#ff6f61;
+  color:white;
+  font-weight:bold;
+}
+button:hover { background:#ff856f; }
+#scoresTable {
+  position:fixed;
+  right:0;
+  top:80px;
+  background:rgba(255,255,255,0.9);
+  padding:10px;
+  border-radius:8px;
+}
+#songList {
+  margin-top:10px;
+}
+.songItem {
+  margin-bottom:5px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:white;
+  padding:5px 10px;
+  border-radius:5px;
+}
+.songItem button {
+  background:#ff856f;
+  padding:2px 5px;
+  font-size:0.8rem;
+}
+#playerContainer iframe {
+  width:100%;
+  height:360px;
+  margin-top:10px;
+}
+.voteSection {
+  margin-top:20px;
+  padding:10px;
+  background:#ffe1b3;
+  border-radius:10px;
+}
+.voteSection button {
+  margin:5px;
+}
 </style>
 </head>
 <body>
-<main>
-<div class="panel">
-  <header>
-    <img src="https://cdn-icons-png.flaticon.com/512/3079/3079087.png" alt="tocadiscos">
-    <h1>JAMBER GAME</h1>
-  </header>
 
-  <!-- Selección número jugadores -->
-  <div class="section" id="numPlayersSection">
-    <h2>¿Cuántos jugadores?</h2>
-    <input type="number" id="numPlayersInput" min="4" value="4">
-    <button id="startGameBtn">Iniciar</button>
-  </div>
+<header>
+  JAMBER GAME
+  <img src="https://cdn-icons-png.flaticon.com/512/179/179391.png" alt="Tocadiscos">
+</header>
 
-  <!-- Selección canciones -->
-  <div class="section" id="songsSection" style="display:none;">
-    <h2 id="currentPlayerLabel"></h2>
-    <input type="text" id="songInput" placeholder="Pegar link de YouTube">
-    <button id="addSongBtn">Añadir canción</button>
-    <ul id="songList"></ul>
-    <button id="nextPlayerBtn">Listo / Siguiente jugador</button>
-  </div>
-
-  <div id="replaySection">
-    <iframe id="playerIframe" src="" allow="autoplay"></iframe>
-    <div id="guessSection"></div>
-  </div>
+<div class="section" id="numPlayersSection">
+  <h2>¿Cuántos jugadores? (mínimo 4)</h2>
+  <input type="number" id="numPlayersInput" min="4" value="4">
+  <button id="startGameBtn">¡Empezar!</button>
 </div>
 
-<div class="score-panel">
-<h2>Puntuaciones</h2>
-<table>
+<div class="section" id="songsSection" style="display:none;">
+  <h3 id="currentPlayerLabel"></h3>
+  <input type="text" id="songInput" placeholder="Pega link de YouTube">
+  <button id="addSongBtn">Añadir canción</button>
+  <div id="songList"></div>
+  <button id="nextPlayerBtn">Listo / Siguiente jugador</button>
+</div>
+
+<div id="playerContainer" class="section"></div>
+
+<div class="section voteSection" id="voteSection" style="display:none;">
+  <h3 id="votePrompt"></h3>
+  <div id="voteButtons"></div>
+  <button id="nextSongBtn">Siguiente canción</button>
+</div>
+
+<table id="scoresTable">
   <thead><tr><th>Jugador</th><th>Puntos</th></tr></thead>
-  <tbody id="scoreBody"></tbody>
+  <tbody id="scoresBody"></tbody>
 </table>
-</div>
-</main>
 
 <script>
-let numPlayers = 4;
-let players = [];
-let currentPlayerIndex = 0;
-let playerTempSongs = [];
-let allSongs = [];
-let scores = {};
-let currentSongIndex = 0;
+let numPlayers=0;
+let players=[];
+let scores={};
+let currentPlayerIndex=0;
+let maxSongsPerPlayer=0;
+let allSongs=[]; // {title, url, owner}
+let currentSongIndex=0;
 
 const numPlayersInput = document.getElementById('numPlayersInput');
 const startGameBtn = document.getElementById('startGameBtn');
@@ -94,126 +134,153 @@ const songInput = document.getElementById('songInput');
 const addSongBtn = document.getElementById('addSongBtn');
 const songList = document.getElementById('songList');
 const nextPlayerBtn = document.getElementById('nextPlayerBtn');
-const playerIframe = document.getElementById('playerIframe');
-const guessSection = document.getElementById('guessSection');
-const scoreBody = document.getElementById('scoreBody');
+const playerContainer = document.getElementById('playerContainer');
 
-// --- Inicializar jugadores ---
+const voteSection = document.getElementById('voteSection');
+const votePrompt = document.getElementById('votePrompt');
+const voteButtons = document.getElementById('voteButtons');
+const nextSongBtn = document.getElementById('nextSongBtn');
+
+const scoresBody = document.getElementById('scoresBody');
+
+function renderScores(){
+  scoresBody.innerHTML='';
+  players.forEach(p=>{
+    const tr=document.createElement('tr');
+    const tdName=document.createElement('td'); tdName.textContent=p;
+    const tdScore=document.createElement('td'); tdScore.textContent=scores[p];
+    tr.appendChild(tdName); tr.appendChild(tdScore);
+    scoresBody.appendChild(tr);
+  });
+}
+
+function updatePlayerLabel(){
+  currentPlayerLabel.textContent=`Turno de ${players[currentPlayerIndex]} (${allSongs.filter(s=>s.owner===players[currentPlayerIndex]).length+1}/${maxSongsPerPlayer})`;
+}
+
 startGameBtn.onclick = ()=>{
   numPlayers = parseInt(numPlayersInput.value);
-  if(numPlayers<4){alert('Mínimo 4 jugadores'); return;}
+  if(numPlayers<4){ alert('Mínimo 4 jugadores'); return; }
+  maxSongsPerPlayer=numPlayers;
+  players=[]; scores={};
   for(let i=1;i<=numPlayers;i++){
-    const name = prompt(`Nombre del jugador ${i}:`);
-    if(!name){i--; continue;}
-    players.push(name);
-    scores[name]=0;
+    let name='';
+    while(!name){ name=prompt(`Nombre del jugador ${i}:`); if(!name) alert('Debes poner un nombre válido'); }
+    players.push(name); scores[name]=0;
   }
   document.getElementById('numPlayersSection').style.display='none';
   songsSection.style.display='block';
   updatePlayerLabel();
-}
+  renderScores();
+};
 
-// --- Canciones ---
-function updatePlayerLabel(){
-  currentPlayerLabel.textContent=`Jugador: ${players[currentPlayerIndex]} (elige ${numPlayers} canciones)`;
-}
+addSongBtn.onclick = async ()=>{
+  if(!songInput.value) return;
+  if(allSongs.filter(s=>s.owner===players[currentPlayerIndex]).length>=maxSongsPerPlayer){
+    alert(`Solo puedes añadir ${maxSongsPerPlayer} canciones`);
+    songInput.value=''; return;
+  }
+  const url = songInput.value.trim();
+  const videoIdMatch = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if(!videoIdMatch){ alert('URL de YouTube no válida'); return; }
+  const videoId = videoIdMatch[1];
+  const apiURL=`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`;
+  try{
+    const res = await fetch(apiURL);
+    const data = await res.json();
+    const title = data.title || 'Canción';
+    allSongs.push({title,url,owner:players[currentPlayerIndex]});
+    renderSongList();
+    songInput.value='';
+  }catch(e){ alert('Error al obtener título'); }
+};
 
-function renderPlayerSongs(){
+function renderSongList(){
   songList.innerHTML='';
-  playerTempSongs.forEach((s,i)=>{
-    const li=document.createElement('li');
-    li.innerHTML=`<span class="title">${i+1}. ${s.title}</span>`;
-    const delBtn=document.createElement('button'); delBtn.textContent='X';
-    delBtn.onclick=()=>{ playerTempSongs.splice(i,1); renderPlayerSongs(); };
-    li.appendChild(delBtn);
-    songList.appendChild(li);
+  allSongs.filter(s=>s.owner===players[currentPlayerIndex]).forEach((s,i)=>{
+    const div=document.createElement('div'); div.className='songItem';
+    div.textContent=`${i+1}. ${s.title}`;
+    const delBtn=document.createElement('button'); delBtn.textContent='Eliminar';
+    delBtn.onclick=()=>{ allSongs.splice(allSongs.indexOf(s),1); renderSongList(); updatePlayerLabel(); };
+    div.appendChild(delBtn);
+    songList.appendChild(div);
   });
-}
-
-function renderScores(){
-  scoreBody.innerHTML='';
-  players.forEach(p=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${p}</td><td>${scores[p]}</td>`;
-    scoreBody.appendChild(tr);
-  });
-}
-
-addSongBtn.onclick = ()=>{
-  const url=songInput.value.trim();
-  if(!url) return;
-  if(playerTempSongs.length>=numPlayers){alert(`Máximo ${numPlayers} canciones por jugador`); return;}
-  const videoIdMatch=url.match(/(?:v=|\.be\/)([\w-]+)/);
-  if(!videoIdMatch){alert('Link de YouTube inválido'); return;}
-  const videoId=videoIdMatch[1];
-  const embedUrl=`https://www.youtube.com/embed/${videoId}?autoplay=1`;
-
-  fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
-    .then(res=>res.json())
-    .then(data=>{
-      const title=data.title;
-      playerTempSongs.push({title:title,url:embedUrl,owner:players[currentPlayerIndex]});
-      renderPlayerSongs();
-      songInput.value='';
-      nextPlayerBtn.style.display='inline-block';
-    }).catch(err=>{alert('No se pudo obtener el título'); console.error(err);});
+  updatePlayerLabel();
 }
 
 nextPlayerBtn.onclick = ()=>{
-  allSongs = allSongs.concat(playerTempSongs);
-  playerTempSongs=[];
-  renderPlayerSongs();
+  if(allSongs.filter(s=>s.owner===players[currentPlayerIndex]).length<maxSongsPerPlayer){
+    alert('Debes añadir todas tus canciones'); return;
+  }
   currentPlayerIndex++;
-  nextPlayerBtn.style.display='none';
   if(currentPlayerIndex>=players.length){
     songsSection.style.display='none';
-    startPlayback();
-  } else updatePlayerLabel();
-}
+    startSongRound();
+  }else{
+    renderSongList();
+    updatePlayerLabel();
+  }
+};
 
-// --- Reproducción ---
-function shuffle(array){for(let i=array.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[array[i],array[j]]=[array[j],array[i]];}}
-
-function startPlayback(){
-  shuffle(allSongs);
+function startSongRound(){
   currentSongIndex=0;
-  playSong(currentSongIndex);
+  shuffleArray(allSongs);
+  showCurrentSong();
 }
 
-function playSong(index){
-  if(index>=allSongs.length){alert('¡Fin de la ronda!'); return;}
-  const song=allSongs[index];
-  playerIframe.src=song.url;
-  guessSection.innerHTML='';
-  setTimeout(()=>showGuesses(song,index),15000);
+function showCurrentSong(){
+  voteSection.style.display='none';
+  playerContainer.innerHTML=`<iframe src="https://www.youtube.com/embed/${getVideoId(allSongs[currentSongIndex].url)}?autoplay=1&controls=0" allow="autoplay" frameborder="0"></iframe>`;
+  setTimeout(()=>{ startVoting(); },15000); // 15s por canción
 }
 
-function showGuesses(song,index){
-  guessSection.innerHTML='';
-  const box=document.createElement('div'); box.className='guess-box';
-  const h3=document.createElement('h3'); h3.textContent=`¿Quién puso esta canción?: ${song.title}`; box.appendChild(h3);
-
-  players.forEach(p=>{
-    if(p===song.owner) return;
-    const btn=document.createElement('button'); btn.textContent=p;
-    btn.onclick=()=>{
-      if(p===song.owner){scores[p]+=2; scores[song.owner]-=1;}
-      renderScores();
-      const nextPlayerBtn=document.createElement('button'); nextPlayerBtn.textContent='Siguiente jugador';
-      nextPlayerBtn.onclick=()=>{
-        box.remove();
-        const nextIndex=players.findIndex(x=>x===p)+1;
-        if(nextIndex>=players.length || nextIndex===players.indexOf(song.owner)){
-          playSong(index+1);
-        } else showGuesses(song,index);
+function startVoting(){
+  voteSection.style.display='block';
+  votePrompt.textContent=`¿Quién puso esta canción?`;
+  voteButtons.innerHTML='';
+  players.filter(p=>p!==allSongs[currentSongIndex].owner).forEach(p=>{
+    const btn=document.createElement('button');
+    btn.textContent=p;
+    btn.onclick=()=>{ 
+      if(p===allSongs[currentSongIndex].owner){
+        alert('No puedes votar por ti mismo');
+        return;
       }
-      box.appendChild(nextPlayerBtn);
-    }
-    box.appendChild(btn);
+      // Puntos
+      if(p === allSongs[currentSongIndex].owner) return;
+      if(!allSongs[currentSongIndex].votes) allSongs[currentSongIndex].votes={};
+      allSongs[currentSongIndex].votes[p]=true;
+      if(p===allSongs[currentSongIndex].owner){
+        scores[p]+=2;
+      } else {
+        scores[allSongs[currentSongIndex].owner]-=1;
+      }
+      renderScores();
+      voteSection.style.display='none';
+      currentSongIndex++;
+      if(currentSongIndex<allSongs.length){
+        showCurrentSong();
+      } else {
+        alert('¡Ronda terminada!');
+        playerContainer.innerHTML='';
+      }
+    };
+    voteButtons.appendChild(btn);
   });
+}
 
-  guessSection.appendChild(box);
+function getVideoId(url){
+  const m = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m?m[1]:'';
+}
+
+function shuffleArray(array){
+  for(let i=array.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [array[i],array[j]]=[array[j],array[i]];
+  }
 }
 </script>
+
 </body>
 </html>
