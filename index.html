@@ -5,162 +5,147 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jamber Music Game</title>
 <style>
-  * { box-sizing: border-box; margin:0; padding:0; font-family: 'Inter', sans-serif; }
-  html, body { height:100%; width:100%; background: linear-gradient(120deg,#ffb347,#ffcc33); overflow-x:hidden; }
-  main.wrap { max-width:1000px; margin:20px auto; padding:20px; background: linear-gradient(145deg,#f0f8ff,#d4f1f9); border-radius:20px; box-shadow:0 10px 25px rgba(0,0,0,0.2);}
-  header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
-  h1 { font-size:2rem; color:#ff6f61; text-shadow:1px 1px #fff;}
-  .small { font-size:0.9rem; color:#555; }
-  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .btn { padding:10px 16px; border-radius:12px; border:none; cursor:pointer; font-weight:bold; transition:all 0.2s; box-shadow:0 4px 10px rgba(0,0,0,0.2);}
-  .btn:hover { transform:translateY(-2px); box-shadow:0 6px 15px rgba(0,0,0,0.25);}
-  .btn.primary { background: linear-gradient(90deg, #ff6f61, #ffcc33); color:#fff; }
-  .btn.secondary { background:#fff; color:#ff6f61; border:2px solid #ff6f61; }
-  .filters { display:flex; gap:8px; }
-  .filter-btn { padding:6px 12px; border-radius:12px; border:none; cursor:pointer; background:#ffe3b3; color:#ff6f61; font-weight:bold; transition:0.2s; }
-  .filter-btn.active { background:#ff6f61; color:#fff; }
-  .list { margin-top:20px; display:flex; flex-direction:column; gap:12px; }
-  .task { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-radius:15px; background:#fff; box-shadow:0 6px 12px rgba(0,0,0,0.15); transition: transform 0.2s;}
-  .task.dragging { opacity:0.7; transform:scale(0.98); }
-  .checkbox { width:28px; height:28px; border-radius:50%; border:3px solid #ff6f61; display:flex; align-items:center; justify-content:center; font-weight:bold; cursor:pointer; color:#ff6f61; flex-shrink:0; }
-  .checkbox.checked { background:#ff6f61; color:#fff; }
-  .title { flex:1; margin-left:15px; }
-  .text { font-size:1.1rem; font-weight:600; color:#333; }
-  .text.completed { text-decoration:line-through; color:#999; }
-  .meta { font-size:0.85rem; color:#888; margin-top:4px; }
-  .actions { display:flex; gap:10px; }
-  .icon-btn { background:#fff; border-radius:50%; width:36px; height:36px; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:1.1rem; color:#ff6f61; transition:0.2s;}
-  .icon-btn:hover { transform:scale(1.1); background:#ffe3b3; }
-  .overlay { position:fixed; inset:0; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.6); z-index:9999; }
-  .edit-card { background:#fff; border-radius:18px; padding:25px; width:400px; max-width:90%; box-shadow:0 10px 25px rgba(0,0,0,0.3); display:flex; flex-direction:column; gap:12px; }
-  .edit-card input, .edit-card textarea { padding:10px; border-radius:12px; border:2px solid #ff6f61; font-size:1rem; outline:none; width:100%; }
-  .edit-card textarea { min-height:100px; }
-  .edit-row { display:flex; justify-content:flex-end; gap:12px; }
-  .bottom { display:flex; justify-content:space-between; margin-top:20px; font-weight:bold; }
-  @media (min-width:1024px){ main.wrap{padding:40px;} h1{font-size:2.5rem;} }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;}
+  body{background:#0f1720;color:#fff;display:flex;height:100vh;overflow:hidden;}
+  #sidebar{width:280px;background:#1e293b;padding:20px;display:flex;flex-direction:column;}
+  #sidebar h2{text-align:center;color:#60a5fa;margin-bottom:20px;}
+  #playersList, #scoresList{margin-bottom:20px;}
+  #playersList input{width:100%;padding:8px;margin-bottom:6px;border-radius:6px;border:none;}
+  #playersList button, #songSearch button, #voteButtons button{width:100%;padding:8px;margin-top:6px;background:#06b6d4;color:#042027;font-weight:bold;border:none;border-radius:6px;cursor:pointer;}
+  #main{flex:1;padding:20px;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;background:#0f1720;}
+  #songSearch{margin-bottom:20px;width:100%;display:flex;gap:10px;}
+  #songSearch input{flex:1;padding:8px;border-radius:6px;border:none;}
+  iframe{border:none;border-radius:10px;margin-bottom:20px;}
+  #voteButtons{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+  button:hover{opacity:0.8;}
+  .scoreItem{padding:6px;margin-bottom:4px;background:#1e293b;border-radius:6px;text-align:center;}
+  h3{margin-bottom:10px;color:#60a5fa;}
 </style>
 </head>
 <body>
-<main class="wrap">
-  <header>
-    <div>
-      <h1>Jamber Music Game</h1>
-      <div class="small">Selecciona canciones, farolea y adivina las de tus amigos!</div>
-    </div>
-    <div class="controls">
-      <div class="filters">
-        <button class="filter-btn active" data-filter="all">Todos</button>
-        <button class="filter-btn" data-filter="active">Activos</button>
-        <button class="filter-btn" data-filter="completed">Completados</button>
-      </div>
-      <button class="btn primary" id="exportBtn">Exportar</button>
-      <label class="btn secondary" for="importFile">Importar</label>
-      <input id="importFile" type="file" style="display:none" accept="application/json" />
-    </div>
-  </header>
 
-  <section class="top-row" style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
-    <div class="left" style="display:flex;gap:8px;align-items:center;">
-      <div id="newCheckbox" class="checkbox" title="Marcar nuevas tareas como completadas?"></div>
-      <input type="text" id="newTaskInput" placeholder="Nueva canción..." style="padding:10px;border-radius:12px;border:2px solid #ff6f61;flex:1;">
-      <button class="btn primary" id="addBtn">Agregar</button>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn secondary" id="clearCompleted">Limpiar completados</button>
-      <button class="btn secondary" id="clearAll">Limpiar todo</button>
-    </div>
-  </section>
+<div id="sidebar">
+  <h2>Jamber Music</h2>
+  <div id="playersList">
+    <input type="text" id="playerName" placeholder="Nombre del jugador">
+    <button id="addPlayerBtn">Añadir jugador</button>
+  </div>
+  <div>
+    <h3>Jugadores</h3>
+    <ul id="playerNames"></ul>
+  </div>
+  <div>
+    <h3>Puntuaciones</h3>
+    <div id="scoresList"></div>
+  </div>
+</div>
 
-  <section>
-    <div class="list" id="taskList"></div>
-    <div class="bottom">
-      <div id="countBadge">0 canciones</div>
-      <div class="small">Arrastra para reordenar • Haz clic en un título para editar</div>
-    </div>
-  </section>
-</main>
+<div id="main">
+  <div id="songSearch">
+    <input type="text" id="songQuery" placeholder="Buscar canción en YouTube">
+    <button id="addSongBtn">Añadir canción</button>
+  </div>
+  <iframe id="player" width="640" height="360" allow="autoplay"></iframe>
+  <div id="voteButtons"></div>
+  <button id="nextSongBtn" style="display:none;margin-top:10px;">Siguiente canción</button>
+</div>
 
 <script>
-const STORAGE_KEY='jamberGame_v1';
-let state={tasks:[],lastId:0,newChecked:false,filter:'all'};
-const taskList=document.getElementById('taskList');
-const newInput=document.getElementById('newTaskInput');
-const addBtn=document.getElementById('addBtn');
-const newCheckbox=document.getElementById('newCheckbox');
-const countBadge=document.getElementById('countBadge');
-const filters=document.querySelectorAll('.filter-btn[data-filter]');
-const clearCompletedBtn=document.getElementById('clearCompleted');
-const clearAllBtn=document.getElementById('clearAll');
-const exportBtn=document.getElementById('exportBtn');
-const importFile=document.getElementById('importFile');
+let players = [];
+let scores = {};
+let songs = []; // {title, url, owner}
+let currentSong = null;
 
-loadState(); render();
+const playerInput = document.getElementById('playerName');
+const addPlayerBtn = document.getElementById('addPlayerBtn');
+const playerNamesList = document.getElementById('playerNames');
+const scoresList = document.getElementById('scoresList');
 
-addBtn.addEventListener('click',onAdd);
-newInput.addEventListener('keydown',e=>{if(e.key==='Enter') onAdd();});
-newCheckbox.addEventListener('click',()=>{state.newChecked=!state.newChecked; render();});
-filters.forEach(b=>b.addEventListener('click',onFilter));
-clearCompletedBtn.addEventListener('click',clearCompleted);
-clearAllBtn.addEventListener('click',clearAll);
-exportBtn.addEventListener('click',exportJSON);
-importFile.addEventListener('change',importJSON);
+const songQuery = document.getElementById('songQuery');
+const addSongBtn = document.getElementById('addSongBtn');
+const playerIframe = document.getElementById('player');
+const voteButtonsDiv = document.getElementById('voteButtons');
+const nextSongBtn = document.getElementById('nextSongBtn');
 
-let dragSrc=null;
-function onDragStart(e){dragSrc=this.dataset.id; this.classList.add('dragging'); e.dataTransfer.effectAllowed='move';}
-function onDragEnd(){this.classList.remove('dragging'); dragSrc=null;}
-function onDragOver(e){e.preventDefault(); e.dataTransfer.dropEffect='move';}
-function onDrop(e){e.stopPropagation(); const dst=this.dataset.id; if(dragSrc&&dst&&dragSrc!==dst) reorder(+dragSrc,+dst);}
-
-function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){console.error(e);}}
-function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY); if(raw) state=JSON.parse(raw);}catch(e){console.warn(e);}}
-function uid(){state.lastId=(state.lastId||0)+1; return state.lastId;}
-function createTask(title){return{id:uid(),title:title.trim(),completed:!!state.newChecked,createdAt:Date.now(),notes:''};}
-function onAdd(){const val=newInput.value.trim(); if(!val) return; const t=createTask(val); state.tasks.unshift(t); newInput.value=''; saveState(); render();}
-function onFilter(e){const f=e.currentTarget.dataset.filter; state.filter=f; filters.forEach(b=>b.classList.toggle('active',b.dataset.filter===f)); render();}
-function toggleComplete(id){const t=state.tasks.find(x=>x.id===id); if(t) t.completed=!t.completed; saveState(); render();}
-function deleteTask(id){state.tasks=state.tasks.filter(x=>x.id!==id); saveState(); render();}
-function editTask(id,newTitle,newNotes){const t=state.tasks.find(x=>x.id===id); if(!t) return; t.title=newTitle.trim(); t.notes=newNotes||''; saveState(); render();}
-function clearCompleted(){if(!confirm('Remove completed tasks?')) return; state.tasks=state.tasks.filter(t=>!t.completed); saveState(); render();}
-function clearAll(){if(!confirm('Delete ALL tasks?')) return; state.tasks=[]; state.lastId=0; saveState(); render();}
-function reorder(srcId,dstId){const srcIndex=state.tasks.findIndex(t=>t.id===+srcId); const dstIndex=state.tasks.findIndex(t=>t.id===+dstId); if(srcIndex===-1||dstIndex===-1) return; const [item]=state.tasks.splice(srcIndex,1); state.tasks.splice(dstIndex,0,item); saveState(); render();}
-function exportJSON(){const data=JSON.stringify(state,null,2); const blob=new Blob([data],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='jamber-export.json'; document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); a.remove();}
-function importJSON(e){const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=function(ev){try{const obj=JSON.parse(ev.target.result); if(obj&&Array.isArray(obj.tasks)){if(confirm('Replace current tasks with imported tasks? Click Cancel to merge.')){state=obj;}else{const maxId=state.lastId||0; const incoming=obj.tasks.map(t=>({...t,id:(t.id&&typeof t.id==='number')?t.id+maxId:uid()})); state.tasks=incoming.concat(state.tasks); state.lastId=Math.max(state.lastId||0,...(incoming.map(t=>t.id)));} saveState(); render(); alert('Import successful');}else alert('Invalid file format');}catch(err){alert('Import failed: '+err.message);}}; reader.readAsText(file); e.target.value='';}
-
-function render(){
-  newCheckbox.classList.toggle('checked',!!state.newChecked);
-  newCheckbox.textContent=state.newChecked?'✓':'';
-  const tasks=state.tasks.filter(t=>{if(state.filter==='active') return !t.completed; if(state.filter==='completed') return t.completed; return true;});
-  taskList.innerHTML='';
-  tasks.forEach(task=>{
-    const el=document.createElement('div'); el.className='task'; el.draggable=true; el.dataset.id=task.id;
-    const cb=document.createElement('div'); cb.className='checkbox'+(task.completed?' checked':''); cb.innerHTML=task.completed?'✓':''; cb.title=task.completed?'Mark as active':'Mark complete'; cb.addEventListener('click',()=>toggleComplete(task.id));
-    const title=document.createElement('div'); title.className='title'; const text=document.createElement('div'); text.className='text'; text.textContent=task.title; if(task.completed) text.classList.add('completed'); text.tabIndex=0; text.title='Click to edit'; text.addEventListener('click',()=>openEditDialog(task)); text.addEventListener('keydown',e=>{if(e.key==='Enter') openEditDialog(task);});
-    const meta=document.createElement('div'); meta.className='meta'; const date=new Date(task.createdAt); meta.textContent=`Created ${date.toLocaleString()}`+(task.notes?' • '+task.notes:'');
-    title.appendChild(text); title.appendChild(meta);
-    const actions=document.createElement('div'); actions.className='actions';
-    const editBtn=document.createElement('button'); editBtn.className='icon-btn'; editBtn.title='Edit'; editBtn.innerHTML='✎'; editBtn.addEventListener('click',()=>openEditDialog(task));
-    const delBtn=document.createElement('button'); delBtn.className='icon-btn'; delBtn.title='Delete'; delBtn.innerHTML='🗑'; delBtn.addEventListener('click',()=>{if(confirm('Delete task?')) deleteTask(task.id);});
-    actions.appendChild(editBtn); actions.appendChild(delBtn);
-    el.appendChild(cb); el.appendChild(title); el.appendChild(actions);
-    el.addEventListener('dragstart',onDragStart); el.addEventListener('dragend',onDragEnd); el.addEventListener('dragover',onDragOver); el.addEventListener('drop',onDrop);
-    taskList.appendChild(el);
+function renderPlayers(){
+  playerNamesList.innerHTML = '';
+  players.forEach(p=>{
+    const li = document.createElement('li');
+    li.textContent = p;
+    playerNamesList.appendChild(li);
   });
-  countBadge.textContent=`${state.tasks.length} canciones`;
-  filters.forEach(b=>b.classList.toggle('active',b.dataset.filter===state.filter));
+  renderScores();
 }
 
-function openEditDialog(task){
-  const overlay=document.createElement('div'); overlay.className='overlay';
-  const card=document.createElement('div'); card.className='edit-card';
-  const title=document.createElement('input'); title.value=task.title;
-  const notes=document.createElement('textarea'); notes.value=task.notes||'';
-  const row=document.createElement('div'); row.className='edit-row';
-  const save=document.createElement('button'); save.className='btn primary'; save.textContent='Guardar'; save.onclick=()=>{ editTask(task.id,title.value,notes.value); document.body.removeChild(overlay); };
-  const cancel=document.createElement('button'); cancel.className='btn secondary'; cancel.textContent='Cancelar'; cancel.onclick=()=>document.body.removeChild(overlay);
-  row.appendChild(cancel); row.appendChild(save);
-  card.appendChild(title); card.appendChild(notes); card.appendChild(row);
-  overlay.appendChild(card); document.body.appendChild(overlay);
+function renderScores(){
+  scoresList.innerHTML = '';
+  players.forEach(p=>{
+    const div = document.createElement('div');
+    div.className='scoreItem';
+    div.textContent = p + ': ' + (scores[p]||0) + ' pts';
+    scoresList.appendChild(div);
+  });
 }
+
+addPlayerBtn.onclick = ()=>{
+  const name = playerInput.value.trim();
+  if(name && !players.includes(name)){
+    players.push(name);
+    scores[name]=0;
+    renderPlayers();
+    playerInput.value='';
+  }
+}
+
+addSongBtn.onclick = ()=>{
+  const query = songQuery.value.trim();
+  if(!query) return;
+  if(players.length<4){ alert('Mínimo 4 jugadores para añadir canciones'); return; }
+  const owner = prompt('¿Quién puso la canción? (nombre exacto del jugador)');
+  if(!players.includes(owner)){ alert('Jugador no válido'); return; }
+  const url = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}&autoplay=1`;
+  songs.push({title:query,url,owner});
+  songQuery.value='';
+  alert('Canción añadida');
+}
+
+function playRandomSong(){
+  if(songs.length===0){ alert('No hay canciones para reproducir'); return; }
+  const index = Math.floor(Math.random()*songs.length);
+  currentSong = songs.splice(index,1)[0];
+  playerIframe.src=currentSong.url;
+  renderVoteButtons();
+  nextSongBtn.style.display='none';
+}
+
+function renderVoteButtons(){
+  voteButtonsDiv.innerHTML='';
+  players.forEach(p=>{
+    const btn = document.createElement('button');
+    btn.textContent = p;
+    btn.onclick = ()=>vote(p);
+    voteButtonsDiv.appendChild(btn);
+  });
+}
+
+let votes={};
+function vote(playerName){
+  votes[playerName]=true;
+  const guess = prompt('Tu apuesta: ¿Quién puso la canción?');
+  if(guess === currentSong.owner){
+    alert('Correcto! +2 pts');
+    scores[playerName] = (scores[playerName]||0)+2;
+    scores[currentSong.owner] = (scores[currentSong.owner]||0)-1;
+  } else {
+    alert('Incorrecto!');
+  }
+  renderScores();
+  nextSongBtn.style.display='block';
+  voteButtonsDiv.innerHTML='';
+}
+
+nextSongBtn.onclick = ()=>playRandomSong();
 </script>
+
 </body>
 </html>
