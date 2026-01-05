@@ -16,23 +16,24 @@
     height: 100vh;
     overflow: hidden;
   }
+
   header {
     position: fixed;
     top: 0; left: 0; right: 0;
-    height: 60px;
-    background: rgba(255,255,255,0.8);
+    height: 80px;
+    background: rgba(255,255,255,0.9);
     display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 12px;
-    padding: 0 20px;
-    z-index: 1000;
-    font-size: 24px;
+    font-size: 36px;
     font-weight: bold;
     color: #d35400;
     text-shadow: 1px 1px #fff;
+    z-index: 1000;
   }
   header img {
-    height: 40px;
+    height: 60px;
+    margin-right: 12px;
   }
 
   #menu {
@@ -43,14 +44,16 @@
     flex-direction: column;
     gap: 12px;
     box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+    margin-top: 80px;
   }
   #menu button {
-    padding: 10px;
+    padding: 12px;
     background:#e67e22;
     border:none;
     border-radius:6px;
     color:#fff;
     font-weight:bold;
+    font-size:16px;
     cursor:pointer;
     transition: 0.2s;
   }
@@ -64,7 +67,8 @@
     justify-content: center;
     position: relative;
     overflow: auto;
-    padding: 80px 20px 20px 20px;
+    padding: 100px 20px 20px 20px;
+    font-size: 20px;
   }
 
   .overlay-message {
@@ -81,14 +85,14 @@
     color: #fff;
     padding: 30px;
     border-radius: 12px;
-    font-size: 22px;
+    font-size: 24px;
     text-align:center;
-    max-width: 400px;
+    max-width: 500px;
   }
 
-  input, select {
-    padding: 8px;
-    font-size:16px;
+  input, select, button {
+    padding: 10px;
+    font-size: 20px;
     border-radius:6px;
     border:1px solid #ccc;
     margin-bottom:10px;
@@ -98,6 +102,8 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
+    width:100%;
+    max-width:600px;
   }
 
   #songList {
@@ -107,12 +113,13 @@
   }
   #songList li {
     background:#fff3e0;
-    padding:8px;
+    padding:12px;
     border-radius:6px;
     margin-bottom:6px;
     display:flex;
     justify-content:space-between;
     align-items:center;
+    font-size:18px;
   }
   #songList li button {
     background:#e74c3c;
@@ -120,7 +127,7 @@
     color:#fff;
     border-radius:4px;
     cursor:pointer;
-    padding:2px 6px;
+    padding:4px 8px;
   }
 
   .round-box {
@@ -130,20 +137,20 @@
     text-align:center;
     color:#111;
     font-weight:bold;
-    font-size:20px;
-    max-width:400px;
+    font-size:24px;
+    max-width:500px;
   }
 
   table {
     border-collapse: collapse;
     margin-top:20px;
     width:100%;
-    max-width:400px;
   }
   th, td {
     border:1px solid #333;
-    padding:6px 12px;
+    padding:8px 12px;
     text-align:center;
+    font-size:18px;
   }
 
 </style>
@@ -164,13 +171,13 @@
 
   <div id="startSection">
     <label>¿Cuántos jugadores? (mínimo 2)</label>
-    <input type="number" id="numPlayers" min="2" max="8">
+    <input type="number" id="numPlayers" min="2" max="8" onkeydown="if(event.key==='Enter') startPlayerSetup()">
     <button onclick="startPlayerSetup()">¡Empezar!</button>
   </div>
 
   <div id="playerSetup">
-    <h2>Ingresa nombre del Jugador <span id="currentPlayerIndex">1</span></h2>
-    <input type="text" id="playerNameInput">
+    <h2>Jugador <span id="currentPlayerIndex">1</span> - Ingresa tu nombre</h2>
+    <input type="text" id="playerNameInput" onkeydown="if(event.key==='Enter') addPlayerName()">
     <button onclick="addPlayerName()">Siguiente</button>
   </div>
 
@@ -203,24 +210,16 @@ let numPlayers=0;
 let players=[];
 let currentPlayerIndex=0;
 let songsPerPlayer=0;
-let currentSongPlayerIndex=0;
 let currentSongIndex=0;
 let roundSongs=[];
 let guessingPlayerIndex=0;
 
 document.getElementById("startSection").style.display='flex';
 
-// --- FUNCIONES DE MENÚ ---
-function restartGame(){
-  location.reload();
-}
-function editPlayerNames(){
-  showMessage("Editar nombres aún no implementado. Puedes reiniciar para cambiar.");
-}
-function showHelp(){
-  showMessage("Lo siento, esta página está en desarrollo. Si necesitas ayuda ve a preguntar a tu amig@ ChatGPT.");
-}
-
+// --- MENÚ ---
+function restartGame(){ location.reload(); }
+function editPlayerNames(){ showMessage("Editar nombres aún no implementado. Reinicia para cambiar."); }
+function showHelp(){ showMessage("Lo siento, esta página está en desarrollo. Si necesitas ayuda ve a preguntar a tu amig@ ChatGPT."); }
 function showMessage(msg){
   const overlay=document.createElement('div');
   overlay.className='overlay-message';
@@ -229,7 +228,7 @@ function showMessage(msg){
   document.body.appendChild(overlay);
 }
 
-// --- CONFIGURACIÓN DE JUGADORES ---
+// --- JUGADORES ---
 function startPlayerSetup(){
   numPlayers=parseInt(document.getElementById("numPlayers").value);
   if(numPlayers<2){alert("Mínimo 2 jugadores"); return;}
@@ -263,39 +262,40 @@ function startSongSelection(){
 
 function updateSongPlayerTitle(){
   document.getElementById("songPlayerTitle").textContent=
-    "Jugador: "+players[currentPlayerIndex].name+" - Canciones: 0/"+songsPerPlayer;
+    "Jugador: "+players[currentPlayerIndex].name+" - Canciones: "+players[currentPlayerIndex].songs.length+"/"+songsPerPlayer;
 }
 
 function addSong(){
   const link=document.getElementById("songInput").value.trim();
   if(!link){alert("Ingresa un link de YouTube"); return;}
-  if(players[currentPlayerIndex].songs.length>=songsPerPlayer){
-    alert("Ya has seleccionado todas tus canciones"); return;
-  }
-  // Extraer nombre de canción simplificado del link
-  const videoId = link.split("v=")[1]?.split("&")[0];
-  if(!videoId){alert("Link no válido"); return;}
-  const title="Canción "+(players[currentPlayerIndex].songs.length+1);
-  players[currentPlayerIndex].songs.push({link:link,title:title});
-  const li=document.createElement('li');
-  li.textContent=title;
-  const btn=document.createElement('button');
-  btn.textContent='X';
-  btn.onclick=()=>{ 
-    players[currentPlayerIndex].songs = players[currentPlayerIndex].songs.filter(s=>s!==players[currentPlayerIndex].songs.find(ss=>ss.title===title));
-    li.remove(); 
-    updateSongPlayerTitle();
-  };
-  li.appendChild(btn);
-  document.getElementById("songList").appendChild(li);
-  document.getElementById("songInput").value='';
-  updateSongPlayerTitle();
+  if(players[currentPlayerIndex].songs.length>=songsPerPlayer){ alert("Ya seleccionaste todas tus canciones"); return; }
+
+  // Verificar disponibilidad de video
+  fetch(`https://noembed.com/embed?url=${encodeURIComponent(link)}`)
+    .then(resp=>resp.json())
+    .then(data=>{
+      if(data.error){alert("Video no disponible. Elige otro."); return;}
+      const title=data.title;
+      players[currentPlayerIndex].songs.push({link:link,title:title});
+      const li=document.createElement('li');
+      li.textContent=title;
+      const btn=document.createElement('button');
+      btn.textContent='X';
+      btn.onclick=()=>{
+        players[currentPlayerIndex].songs = players[currentPlayerIndex].songs.filter(s=>s.title!==title);
+        li.remove();
+        updateSongPlayerTitle();
+      };
+      li.appendChild(btn);
+      document.getElementById("songList").appendChild(li);
+      document.getElementById("songInput").value='';
+      updateSongPlayerTitle();
+    }).catch(()=>alert("Error comprobando video. Intenta otro link."));
 }
 
 function nextPlayerSongSelection(){
   if(players[currentPlayerIndex].songs.length<songsPerPlayer){
-    alert("Debes seleccionar todas tus canciones");
-    return;
+    alert("Debes seleccionar todas tus canciones"); return;
   }
   document.getElementById("songList").innerHTML='';
   currentPlayerIndex++;
@@ -309,7 +309,6 @@ function nextPlayerSongSelection(){
 
 // --- RONDAS ---
 function startRounds(){
-  // Mezclar canciones
   roundSongs=[];
   players.forEach(p=>roundSongs.push(...p.songs.map(s=>({...s, owner:p.name}))));
   roundSongs.sort(()=>Math.random()-0.5);
@@ -322,13 +321,10 @@ function startRounds(){
 }
 
 function playNextSong(){
-  if(currentSongIndex>=roundSongs.length){
-    showMessage("¡Ronda terminada!");
-    return;
-  }
+  if(currentSongIndex>=roundSongs.length){ showMessage("¡Ronda terminada!"); return; }
   const song=roundSongs[currentSongIndex];
   const iframe = document.createElement('iframe');
-  iframe.width="400"; iframe.height="225";
+  iframe.width="500"; iframe.height="280";
   iframe.src=song.link.replace("watch?v=","embed/")+"?autoplay=1&controls=0";
   iframe.allow="autoplay; encrypted-media";
   const playerDiv=document.getElementById("youtubePlayer");
@@ -358,6 +354,7 @@ function nextGuess(){
     if(p.name!==guessPlayer.name){
       const b=document.createElement('button');
       b.textContent=p.name;
+      b.style.fontSize='18px';
       b.onclick=()=>{ submitGuess(guessPlayer,p); };
       btnDiv.appendChild(b);
     }
