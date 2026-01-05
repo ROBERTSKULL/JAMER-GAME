@@ -5,21 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jamber Music Game</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;}
-  body{background:#0f1720;color:#fff;display:flex;height:100vh;overflow:hidden;}
-  #sidebar{width:280px;background:#1e293b;padding:20px;display:flex;flex-direction:column;}
-  #sidebar h2{text-align:center;color:#60a5fa;margin-bottom:20px;}
-  #playersList, #scoresList{margin-bottom:20px;}
-  #playersList input{width:100%;padding:8px;margin-bottom:6px;border-radius:6px;border:none;}
-  #playersList button, #songSearch button, #voteButtons button{width:100%;padding:8px;margin-top:6px;background:#06b6d4;color:#042027;font-weight:bold;border:none;border-radius:6px;cursor:pointer;}
-  #main{flex:1;padding:20px;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;background:#0f1720;}
-  #songSearch{margin-bottom:20px;width:100%;display:flex;gap:10px;}
-  #songSearch input{flex:1;padding:8px;border-radius:6px;border:none;}
-  iframe{border:none;border-radius:10px;margin-bottom:20px;}
-  #voteButtons{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
-  button:hover{opacity:0.8;}
-  .scoreItem{padding:6px;margin-bottom:4px;background:#1e293b;border-radius:6px;text-align:center;}
-  h3{margin-bottom:10px;color:#60a5fa;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;}
+body{background:#0f1720;color:#fff;display:flex;height:100vh;overflow:hidden;}
+#sidebar{width:280px;background:#1e293b;padding:20px;display:flex;flex-direction:column;}
+#sidebar h2{text-align:center;color:#60a5fa;margin-bottom:20px;}
+#playersList, #scoresList{margin-bottom:20px;}
+#playersList input{width:100%;padding:8px;margin-bottom:6px;border-radius:6px;border:none;}
+#playersList button, #songSearch button, #voteButtons button, #nextPlayerBtn{width:100%;padding:8px;margin-top:6px;background:#06b6d4;color:#042027;font-weight:bold;border:none;border-radius:6px;cursor:pointer;}
+#main{flex:1;padding:20px;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;background:#0f1720;}
+#songSearch{margin-bottom:20px;width:100%;display:flex;gap:10px;}
+#songSearch input{flex:1;padding:8px;border-radius:6px;border:none;}
+iframe{border:none;border-radius:10px;margin-bottom:20px;}
+#voteButtons{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+#playerSongs{margin-bottom:20px;width:100%;background:#1e293b;padding:10px;border-radius:8px;}
+.songItem{display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid #334155;}
+.songItem button{background:red;color:white;padding:2px 6px;border:none;border-radius:4px;cursor:pointer;}
+button:hover{opacity:0.8;}
+.scoreItem{padding:6px;margin-bottom:4px;background:#1e293b;border-radius:6px;text-align:center;}
+h3{margin-bottom:10px;color:#60a5fa;}
 </style>
 </head>
 <body>
@@ -41,20 +44,30 @@
 </div>
 
 <div id="main">
-  <div id="songSearch">
-    <input type="text" id="songQuery" placeholder="Buscar canción en YouTube">
-    <button id="addSongBtn">Añadir canción</button>
+  <div id="songPhase" style="width:100%;">
+    <h3 id="currentPlayerHeader"></h3>
+    <div id="songInputArea" style="display:flex;gap:10px;margin-bottom:10px;">
+      <input type="text" id="songQuery" placeholder="Buscar canción en YouTube">
+      <button id="addSongBtn">Añadir canción</button>
+    </div>
+    <div id="playerSongs"></div>
+    <button id="nextPlayerBtn" style="display:none;">Siguiente jugador / Listo</button>
   </div>
-  <iframe id="player" width="640" height="360" allow="autoplay"></iframe>
-  <div id="voteButtons"></div>
-  <button id="nextSongBtn" style="display:none;margin-top:10px;">Siguiente canción</button>
+
+  <div id="playPhase" style="display:none;width:100%;align-items:center;">
+    <iframe id="player" width="640" height="360" allow="autoplay"></iframe>
+    <div id="voteButtons"></div>
+    <button id="nextSongBtn" style="display:none;margin-top:10px;">Siguiente canción</button>
+  </div>
 </div>
 
 <script>
 let players = [];
 let scores = {};
-let songs = []; // {title, url, owner}
+let allSongs = []; // {title, url, owner}
+let currentPlayerIndex = 0;
 let currentSong = null;
+let remainingSongs = [];
 
 const playerInput = document.getElementById('playerName');
 const addPlayerBtn = document.getElementById('addPlayerBtn');
@@ -63,32 +76,37 @@ const scoresList = document.getElementById('scoresList');
 
 const songQuery = document.getElementById('songQuery');
 const addSongBtn = document.getElementById('addSongBtn');
+const playerSongsDiv = document.getElementById('playerSongs');
+const nextPlayerBtn = document.getElementById('nextPlayerBtn');
+
+const currentPlayerHeader = document.getElementById('currentPlayerHeader');
+
+const songPhase = document.getElementById('songPhase');
+const playPhase = document.getElementById('playPhase');
 const playerIframe = document.getElementById('player');
 const voteButtonsDiv = document.getElementById('voteButtons');
 const nextSongBtn = document.getElementById('nextSongBtn');
 
+let playerTempSongs = [];
+
 function renderPlayers(){
-  playerNamesList.innerHTML = '';
+  playerNamesList.innerHTML='';
   players.forEach(p=>{
-    const li = document.createElement('li');
-    li.textContent = p;
-    playerNamesList.appendChild(li);
+    const li=document.createElement('li'); li.textContent=p; playerNamesList.appendChild(li);
   });
   renderScores();
 }
 
 function renderScores(){
-  scoresList.innerHTML = '';
+  scoresList.innerHTML='';
   players.forEach(p=>{
-    const div = document.createElement('div');
-    div.className='scoreItem';
-    div.textContent = p + ': ' + (scores[p]||0) + ' pts';
-    scoresList.appendChild(div);
+    const div=document.createElement('div'); div.className='scoreItem';
+    div.textContent=p+': '+(scores[p]||0)+' pts'; scoresList.appendChild(div);
   });
 }
 
 addPlayerBtn.onclick = ()=>{
-  const name = playerInput.value.trim();
+  const name=playerInput.value.trim();
   if(name && !players.includes(name)){
     players.push(name);
     scores[name]=0;
@@ -97,22 +115,51 @@ addPlayerBtn.onclick = ()=>{
   }
 }
 
-addSongBtn.onclick = ()=>{
-  const query = songQuery.value.trim();
-  if(!query) return;
-  if(players.length<4){ alert('Mínimo 4 jugadores para añadir canciones'); return; }
-  const owner = prompt('¿Quién puso la canción? (nombre exacto del jugador)');
-  if(!players.includes(owner)){ alert('Jugador no válido'); return; }
-  const url = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}&autoplay=1`;
-  songs.push({title:query,url,owner});
-  songQuery.value='';
-  alert('Canción añadida');
+function renderPlayerSongs(){
+  playerSongsDiv.innerHTML='';
+  playerTempSongs.forEach((s,i)=>{
+    const div=document.createElement('div'); div.className='songItem';
+    div.innerHTML=`${i+1}. ${s.title} <button onclick="removeSong(${i})">X</button>`;
+    playerSongsDiv.appendChild(div);
+  });
 }
 
+function removeSong(index){
+  playerTempSongs.splice(index,1);
+  renderPlayerSongs();
+}
+
+addSongBtn.onclick = ()=>{
+  const query=songQuery.value.trim();
+  if(!query) return;
+  playerTempSongs.push({title:query,url:`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}&autoplay=1`,owner:players[currentPlayerIndex]});
+  renderPlayerSongs();
+  songQuery.value='';
+  nextPlayerBtn.style.display='inline-block';
+}
+
+nextPlayerBtn.onclick = ()=>{
+  allSongs.push(...playerTempSongs);
+  playerTempSongs=[];
+  currentPlayerIndex++;
+  if(currentPlayerIndex<players.length){
+    currentPlayerHeader.textContent=`Turno de ${players[currentPlayerIndex]}`;
+    renderPlayerSongs();
+    nextPlayerBtn.style.display='none';
+  } else {
+    // Terminar fase de selección, iniciar fase de reproducción
+    songPhase.style.display='none';
+    playPhase.style.display='flex';
+    remainingSongs=[...allSongs];
+    playRandomSong();
+  }
+}
+
+// --- Reproducción y votación ---
 function playRandomSong(){
-  if(songs.length===0){ alert('No hay canciones para reproducir'); return; }
-  const index = Math.floor(Math.random()*songs.length);
-  currentSong = songs.splice(index,1)[0];
+  if(remainingSongs.length===0){ alert('¡Fin del juego!'); return; }
+  const index=Math.floor(Math.random()*remainingSongs.length);
+  currentSong=remainingSongs.splice(index,1)[0];
   playerIframe.src=currentSong.url;
   renderVoteButtons();
   nextSongBtn.style.display='none';
@@ -121,30 +168,31 @@ function playRandomSong(){
 function renderVoteButtons(){
   voteButtonsDiv.innerHTML='';
   players.forEach(p=>{
-    const btn = document.createElement('button');
-    btn.textContent = p;
-    btn.onclick = ()=>vote(p);
+    const btn=document.createElement('button');
+    btn.textContent=p;
+    btn.onclick=()=>vote(p);
     voteButtonsDiv.appendChild(btn);
   });
 }
 
-let votes={};
 function vote(playerName){
-  votes[playerName]=true;
-  const guess = prompt('Tu apuesta: ¿Quién puso la canción?');
-  if(guess === currentSong.owner){
+  const guess=prompt(playerName+', ¿quién puso esta canción?');
+  if(guess===currentSong.owner){
     alert('Correcto! +2 pts');
-    scores[playerName] = (scores[playerName]||0)+2;
-    scores[currentSong.owner] = (scores[currentSong.owner]||0)-1;
+    scores[playerName]=(scores[playerName]||0)+2;
+    scores[currentSong.owner]=(scores[currentSong.owner]||0)-1;
   } else {
     alert('Incorrecto!');
   }
   renderScores();
-  nextSongBtn.style.display='block';
   voteButtonsDiv.innerHTML='';
+  nextSongBtn.style.display='block';
 }
 
 nextSongBtn.onclick = ()=>playRandomSong();
+
+// Inicialización
+if(players.length>0) currentPlayerHeader.textContent=`Turno de ${players[currentPlayerIndex]}`;
 </script>
 
 </body>
