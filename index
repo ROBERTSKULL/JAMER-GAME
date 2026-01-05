@@ -1,0 +1,320 @@
+// --- ESTADO ---
+const STORAGE_KEY = 'jamberGame_v1';
+let state = {
+  tasks: [],
+  lastId: 0,
+  newChecked: false,
+  filter: 'all'
+};
+
+// --- DOM ---
+const taskList = document.getElementById('taskList');
+const newInput = document.getElementById('newTaskInput');
+const addBtn = document.getElementById('addBtn');
+const newCheckbox = document.getElementById('newCheckbox');
+const countBadge = document.getElementById('countBadge');
+const filters = document.querySelectorAll('.filter-btn[data-filter]');
+const clearCompletedBtn = document.getElementById('clearCompleted');
+const clearAllBtn = document.getElementById('clearAll');
+const exportBtn = document.getElementById('exportBtn');
+const importFile = document.getElementById('importFile');
+
+// --- INICIALIZAR ---
+loadState();
+render();
+
+// --- EVENTOS ---
+addBtn.addEventListener('click', onAdd);
+newInput.addEventListener('keydown', e => { if(e.key==='Enter') onAdd(); });
+newCheckbox.addEventListener('click', ()=>{ state.newChecked=!state.newChecked; render(); });
+filters.forEach(b=>b.addEventListener('click', onFilter));
+clearCompletedBtn.addEventListener('click', clearCompleted);
+clearAllBtn.addEventListener('click', clearAll);
+exportBtn.addEventListener('click', exportJSON);
+importFile.addEventListener('change', importJSON);
+
+// --- DRAG & DROP ---
+let dragSrc = null;
+
+function onDragStart(e){
+  dragSrc = this.dataset.id;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragEnd(){
+  this.classList.remove('dragging');
+  dragSrc = null;
+}
+
+function onDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function onDrop(e){
+  e.stopPropagation();
+  const dst = this.dataset.id;
+  if(dragSrc && dst && dragSrc!==dst) reorder(+dragSrc,+dst);
+}
+
+// --- FUNCIONES ---
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){ console.error('save error', e); }
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) state = JSON.parse(raw);
+  } catch(e){ console.warn('load failed', e); }
+}
+
+function uid(){ state.lastId=(state.lastId||0)+1; return state.lastId; }
+
+function createTask(title){
+  return { id: uid(), title: title.trim(), completed: !!state.newChecked, createdAt: Date.now(), notes: '' };
+}
+
+function onAdd(){
+  const val = newInput.value.trim();
+  if(!val) return;
+  const t = createTask(val);
+  state.tasks.unshift(t);
+  newInput.value='';
+  saveState();
+  render();
+}
+
+function onFilter(e){
+  const f = e.currentTarget.dataset.filter;
+  state.filter=f;
+  filters.forEach(b=>b.classList.toggle('active', b.dataset.filter===f));
+  render();
+}
+
+function toggleComplete(id){
+  const t = state.tasks.find(x=>x.id===id);
+  if(t) t.completed=!t.completed;
+  saveState();
+  render();
+}
+
+function deleteTask(id){
+  state.tasks=state.tasks.filter(x=>x.id!==id);
+  saveState();
+  render();
+}
+
+function editTask(id,newTitle,newNotes){
+  const t = state.tasks.find(x=>x.id===id);
+  if(!t) return;
+  t.title=newTitle.trim();
+  t.notes=newNotes||'';
+  saveState();
+  render();
+}
+
+function clearCompleted(){
+  if(!confirm('Remove completed tasks?')) return;
+  state.tasks=state.tasks.filter(t=>!t.completed);
+  saveState();
+  render();
+}
+
+function clearAll(){
+  if(!confirm('Delete ALL tasks?')) return;
+  state.tasks=[];
+  state.lastId=0;
+  saveState();
+  render();
+}
+
+function reorder(srcId,dstId){
+  const srcIndex = state.tasks.findIndex(t=>t.id===+srcId);
+  const dstIndex = state.tasks.findIndex(t=>t.id===+dstId);
+  if(srcIndex===-1||dstIndex===-1) return;
+  const [item] = state.tasks.splice(srcIndex,1);
+  state.tasks.splice(dstIndex,0,item);
+  saveState();
+  render();
+}
+
+function exportJSON(){
+  const data=JSON.stringify(state,null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='jamber-export.json';
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(url);
+  a.remove();
+}
+
+function importJSON(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const obj=JSON.parse(ev.target.result);
+      if(obj && Array.isArray(obj.tasks)){
+        if(confirm('Replace current tasks with imported tasks? Click Cancel to merge.')){
+          state=obj;
+        } else {
+          const maxId = state.lastId||0;
+          const incoming = obj.tasks.map((t,i)=>({ ...t, id: (t.id&&typeof t.id==='number') ? t.id+maxId : uid() }));
+          state.tasks=incoming.concat(state.tasks);
+          state.lastId=Math.max(state.lastId||0,...(incoming.map(t=>t.id)));
+        }
+        saveState();
+        render();
+        alert('Import successful');
+      } else alert('Invalid file format');
+    } catch(err){ alert('Import failed: '+err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+// --- RENDER ---
+function render(){
+  newCheckbox.classList.toggle('checked',!!state.newChecked);
+  newCheckbox.textContent=state.newChecked?'✓':'';
+
+  const tasks = state.tasks.filter(t=>{
+    if(state.filter==='active') return !t.completed;
+    if(state.filter==='completed') return t.completed;
+    return true;
+  });
+
+  taskList.innerHTML='';
+  tasks.forEach(task=>{
+    const el=document.createElement('div');
+    el.className='task';
+    el.draggable=true;
+    el.dataset.id=task.id;
+
+    const cb=document.createElement('div');
+    cb.className='checkbox'+(task.completed?' checked':'');
+    cb.innerHTML=task.completed?'✓':'';
+    cb.title=task.completed?'Mark as active':'Mark complete';
+    cb.addEventListener('click',()=>toggleComplete(task.id));
+
+    const title=document.createElement('div');
+    title.className='title';
+    const text=document.createElement('div');
+    text.className='text';
+    text.textContent=task.title;
+    if(task.completed) text.style.textDecoration='line-through';
+    text.tabIndex=0;
+    text.title='Click to edit';
+    text.addEventListener('click',()=>openEditDialog(task));
+    text.addEventListener('keydown', e=>{ if(e.key==='Enter') openEditDialog(task); });
+
+    const meta=document.createElement('div');
+    meta.className='meta';
+    const date=new Date(task.createdAt);
+    meta.textContent=`Created ${date.toLocaleString()}`+(task.notes?' • '+task.notes:'');
+
+    title.appendChild(text);
+    title.appendChild(meta);
+
+    const actions=document.createElement('div');
+    actions.className='actions';
+    const editBtn=document.createElement('button');
+    editBtn.className='icon-btn';
+    editBtn.title='Edit';
+    editBtn.innerHTML='✎';
+    editBtn.addEventListener('click',()=>openEditDialog(task));
+    const delBtn=document.createElement('button');
+    delBtn.className='icon-btn';
+    delBtn.title='Delete';
+    delBtn.innerHTML='🗑';
+    delBtn.addEventListener('click',()=>{ if(confirm('Delete task?')) deleteTask(task.id); });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+
+    el.appendChild(cb);
+    el.appendChild(title);
+    el.appendChild(actions);
+
+    el.addEventListener('dragstart', onDragStart);
+    el.addEventListener('dragend', onDragEnd);
+    el.addEventListener('dragover', onDragOver);
+    el.addEventListener('drop', onDrop);
+
+    taskList.appendChild(el);
+  });
+
+  countBadge.textContent=`${state.tasks.length} task${state.tasks.length!==1?'s':''}`;
+  filters.forEach(b=>b.classList.toggle('active',b.dataset.filter===state.filter));
+}
+
+// --- EDITAR TAREA ---
+function openEditDialog(task){
+  const overlay=document.createElement('div');
+  Object.assign(overlay.style,{
+    position:'fixed',
+    inset:0,
+    background:'rgba(0,0,0,0.6)',
+    display:'flex',
+    alignItems:'center',
+    justifyContent:'center',
+    zIndex:9999
+  });
+
+  const card=document.createElement('div');
+  Object.assign(card.style,{
+    background:'#041026',
+    padding:'18px',
+    borderRadius:'10px',
+    minWidth:'320px',
+    color:'#e6eef6'
+  });
+
+  const title=document.createElement('input');
+  title.value=task.title;
+  Object.assign(title.style,{
+    width:'100%',
+    padding:'8px',
+    marginBottom:'8px',
+    borderRadius:'6px',
+    border:'1px solid rgba(255,255,255,0.04)',
+    background:'#03101a',
+    color:'#e6eef6'
+  });
+
+  const notes=document.createElement('textarea');
+  notes.value=task.notes||'';
+  Object.assign(notes.style,{
+    width:'100%',
+    padding:'8px',
+    minHeight:'80px',
+    borderRadius:'6px',
+    border:'1px solid rgba(255,255,255,0.04)',
+    background:'#03101a',
+    color:'#e6eef6',
+    marginBottom:'8px'
+  });
+
+  const row=document.createElement('div');
+  Object.assign(row.style,{display:'flex',gap:'8px',justifyContent:'flex-end'});
+
+  const save=document.createElement('button');
+  save.className='btn';
+  save.textContent='Save';
+  save.onclick=()=>{ editTask(task.id,title.value,notes.value); document.body.removeChild(overlay); };
+
+  const cancel=document.createElement('button');
+  cancel.className='btn secondary';
+  cancel.textContent='Cancel';
+  cancel.onclick=()=>document.body.removeChild(overlay);
+
+  row.appendChild(cancel);
+  row.appendChild(save);
+  card.appendChild(title);
