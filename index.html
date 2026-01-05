@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JAMBER GAME</title>
 <style>
-/* --- ESTILO GENERAL --- */
 body {
   margin: 0;
   font-family: 'Comic Sans MS', cursive, sans-serif;
@@ -67,30 +66,22 @@ main {
   transition: 0.3s;
 }
 
-#menu button:hover {
-  background: #ff3b2f;
+#menu button:hover { background: #ff3b2f; }
+
+#gameArea { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+
+#playerInputArea, #nameInputArea, #songSelectionArea, #videoArea { 
+  display: none; 
+  width: 100%; 
+  max-width: 800px; 
+  margin-top: 20px; 
+  background: #fff0e6; 
+  border-radius: 10px; 
+  padding: 20px; 
+  box-shadow: 3px 3px 10px #00000022; 
 }
 
-#gameArea {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-#playerInputArea, #songSelectionArea, #guessingArea, #videoArea {
-  display: none;
-  width: 100%;
-  max-width: 800px;
-  margin-top: 20px;
-  background: #fff0e6;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 3px 3px 10px #00000022;
-}
-
-input[type="text"], input[type="url"] {
+input[type="text"], input[type="url"], input[type="number"] {
   width: 80%;
   padding: 10px;
   margin-right: 10px;
@@ -110,72 +101,20 @@ button.addBtn {
   font-weight: bold;
 }
 
-button.addBtn:hover {
-  background: #ff3b2f;
-}
+button.addBtn:hover { background: #ff3b2f; }
 
-ul {
-  list-style: none;
-  padding: 0;
-  margin-top: 10px;
-}
+ul { list-style: none; padding: 0; margin-top: 10px; }
+li { margin: 5px 0; background: #ffd1c1; padding: 8px; border-radius: 6px; }
 
-li {
-  margin: 5px 0;
-  background: #ffd1c1;
-  padding: 8px;
-  border-radius: 6px;
-}
+#videoPlayer iframe { width: 100%; height: 400px; border-radius: 10px; border: none; }
 
-#videoPlayer iframe {
-  width: 100%;
-  height: 400px;
-  border-radius: 10px;
-  border: none;
-}
+.scoreBoard { margin-top: 20px; background: #fff0e6; padding: 10px; border-radius: 10px; }
+.scoreBoard h3 { margin: 5px 0; text-align: center; }
+.scoreBoard ul { list-style: none; padding: 0; }
+.scoreBoard li { margin: 5px 0; font-size: 1.2em; font-weight: bold; }
 
-.scoreBoard {
-  margin-top: 20px;
-  background: #fff0e6;
-  padding: 10px;
-  border-radius: 10px;
-}
-
-.scoreBoard h3 {
-  margin: 5px 0;
-  text-align: center;
-}
-
-.scoreBoard ul {
-  list-style: none;
-  padding: 0;
-}
-
-.scoreBoard li {
-  margin: 5px 0;
-  font-size: 1.2em;
-  font-weight: bold;
-}
-
-/* Mensajes centrales */
-#messageOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-#messageOverlay div {
-  background: #fff0e6;
-  padding: 30px;
-  border-radius: 15px;
-  font-size: 1.5em;
-  text-align: center;
-  color: #1b1b1b;
-}
+#messageOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+#messageOverlay div { background: #fff0e6; padding: 30px; border-radius: 15px; font-size: 1.5em; text-align: center; color: #1b1b1b; }
 </style>
 </head>
 <body>
@@ -193,7 +132,7 @@ li {
        2. Cada jugador elige tantas canciones como jugadores haya.<br>
        3. Escucha cada canción y adivina quién la eligió.<br>
        4. Puntuación: +2 acierto, -1 quien puso la canción.<br>
-       5. Se reproduce aleatoriamente cada canción 15s.</p>
+       5. Cada canción se reproduce 15s en orden aleatorio.</p>
   </div>
 
   <div id="gameArea">
@@ -238,151 +177,100 @@ li {
 </div>
 
 <script>
-// --- VARIABLES --- 
-let players = [];
-let playerCount = 4;
-let currentPlayerIndex = 0;
-let songsPerPlayer = 0;
-let allSongs = [];
-let currentSongIndex = 0;
-let scores = {};
-let guessingQueue = [];
-let guessingIndex = 0;
+let players=[], playerCount=4, currentPlayerIndex=0, songsPerPlayer=0, allSongs=[], currentSongIndex=0;
+let scores={}, guessingQueue=[], guessingIndex=0;
 
-// --- MENSAJES CENTRALES ---
-function showMessage(msg){
-  const overlay = document.getElementById('messageOverlay');
-  const text = document.getElementById('messageText');
-  text.innerHTML = msg;
-  overlay.style.display = 'flex';
-}
+function showMessage(msg){ const overlay=document.getElementById('messageOverlay'); document.getElementById('messageText').innerHTML=msg; overlay.style.display='flex'; }
+function hideMessage(){ document.getElementById('messageOverlay').style.display='none'; }
 
-function hideMessage(){
-  document.getElementById('messageOverlay').style.display='none';
-}
-
-// --- INICIO JUEGO ---
-function startPlayerNames(){
-  playerCount = parseInt(document.getElementById('playerCount').value);
+function startPlayerNames(){ 
+  playerCount=parseInt(document.getElementById('playerCount').value); 
   if(playerCount<4){ alert('Mínimo 4 jugadores'); return; }
-  songsPerPlayer = playerCount;
+  songsPerPlayer=playerCount;
   document.getElementById('playerInputArea').style.display='none';
   document.getElementById('nameInputArea').style.display='block';
   document.getElementById('currentPlayerNumber').textContent = 1;
 }
 
-// --- NOMBRES JUGADORES ---
 function addPlayerName(){
-  const input = document.getElementById('playerNameInput');
-  const name = input.value.trim();
+  const input=document.getElementById('playerNameInput');
+  const name=input.value.trim();
   if(!name) return;
   players.push(name);
-  scores[name] = 0;
-  const li = document.createElement('li');
-  li.textContent = name;
+  scores[name]=0;
+  const li=document.createElement('li'); li.textContent=name;
   document.getElementById('playerList').appendChild(li);
   input.value='';
   if(players.length<playerCount){
     document.getElementById('currentPlayerNumber').textContent = players.length +1;
-  } else {
-    document.getElementById('nameInputArea').style.display='none';
-    startSongSelection();
-  }
+  } else { document.getElementById('nameInputArea').style.display='none'; startSongSelection(); }
 }
 
-// --- SELECCION DE CANCIONES ---
+document.getElementById('playerNameInput').addEventListener('keydown', function(e){ if(e.key==='Enter') addPlayerName(); });
+
 function startSongSelection(){
-  currentPlayerIndex=0;
-  allSongs=[];
+  currentPlayerIndex=0; allSongs=[];
   document.getElementById('songSelectionArea').style.display='block';
-  document.getElementById('currentPlayerName').textContent = players[currentPlayerIndex];
+  document.getElementById('currentPlayerName').textContent=players[currentPlayerIndex];
   document.getElementById('songList').innerHTML='';
 }
 
 function addSong(){
-  const input = document.getElementById('songLinkInput');
-  const url = input.value.trim();
-  if(!url) return;
-
-  // Obtener título de YouTube simple
-  const videoIdMatch = url.match(/v=([a-zA-Z0-9_-]{11})/);
+  const input=document.getElementById('songLinkInput');
+  const url=input.value.trim();
+  if(!url){ alert('Ingresa un link'); return; }
+  const videoIdMatch=url.match(/v=([a-zA-Z0-9_-]{11})/);
   if(!videoIdMatch){ alert('No se reconoce link de YouTube'); return; }
-  const videoId = videoIdMatch[1];
-  const title = 'Canción ' + videoId; // placeholder para demo
-  // Aquí podrías usar API YouTube para obtener título real si quisieras
-
-  // Validar límite de canciones
-  const playerSongs = allSongs.filter(s=>s.player===players[currentPlayerIndex]);
-  if(playerSongs.length>=songsPerPlayer){
-    alert('Has alcanzado el límite de canciones para este jugador');
-    return;
-  }
-
-  allSongs.push({player: players[currentPlayerIndex], url, title});
-  const li = document.createElement('li');
-  li.textContent = title;
+  const videoId=videoIdMatch[1];
+  const title='Canción '+videoId; 
+  const playerSongs=allSongs.filter(s=>s.player===players[currentPlayerIndex]);
+  if(playerSongs.length>=songsPerPlayer){ alert('Has alcanzado el límite de canciones para este jugador'); return; }
+  allSongs.push({player:players[currentPlayerIndex],url,title});
+  const li=document.createElement('li'); li.textContent=title;
+  li.onclick=()=>{ if(confirm('Eliminar canción?')){ li.remove(); allSongs=allSongs.filter(s=>s.title!==title); } };
   document.getElementById('songList').appendChild(li);
   input.value='';
 }
 
+document.getElementById('songLinkInput').addEventListener('keydown', function(e){ if(e.key==='Enter') addSong(); });
+
 function nextPlayer(){
   currentPlayerIndex++;
   if(currentPlayerIndex>=players.length){
-    // Todas las canciones añadidas
     document.getElementById('songSelectionArea').style.display='none';
     startGameRounds();
     return;
   }
-  document.getElementById('currentPlayerName').textContent = players[currentPlayerIndex];
+  document.getElementById('currentPlayerName').textContent=players[currentPlayerIndex];
   document.getElementById('songList').innerHTML='';
 }
 
-// --- JUEGO ---
 function startGameRounds(){
-  currentSongIndex=0;
-  guessingQueue = [];
-  guessingIndex = 0;
+  currentSongIndex=0; guessingQueue=[]; guessingIndex=0;
   document.getElementById('videoArea').style.display='block';
-  allSongs = shuffleArray(allSongs);
-  playNextSong();
-  updateScores();
+  allSongs=shuffleArray(allSongs);
+  playNextSong(); updateScores();
 }
 
 function playNextSong(){
-  if(currentSongIndex>=allSongs.length){
-    showMessage('¡Juego terminado!');
-    return;
-  }
-  const song = allSongs[currentSongIndex];
-  const videoDiv = document.getElementById('videoPlayer');
-  videoDiv.innerHTML = `<iframe src="https://www.youtube.com/embed/${song.url.split('v=')[1]}?autoplay=1" allow="autoplay" allowfullscreen></iframe>`;
-  // preparar cola de adivinanzas
-  guessingQueue = players.filter(p=>p!==song.player);
+  if(currentSongIndex>=allSongs.length){ showMessage('¡Juego terminado!'); return; }
+  const song=allSongs[currentSongIndex];
+  document.getElementById('videoPlayer').innerHTML=`<iframe src="https://www.youtube.com/embed/${song.url.split('v=')[1]}?autoplay=1" allow="autoplay" allowfullscreen></iframe>`;
+  guessingQueue=players.filter(p=>p!==song.player);
   guessingIndex=0;
-  setTimeout(()=>askNextGuess(),15000); // 15s
+  setTimeout(()=>askNextGuess(),15000);
 }
 
 function askNextGuess(){
-  if(guessingIndex>=guessingQueue.length){
-    // siguiente canción
-    currentSongIndex++;
-    playNextSong();
-    return;
-  }
-  const currentGuesser = guessingQueue[guessingIndex];
-  const msg = `${currentGuesser}, ¿quién eligió esta canción?`;
-  const buttonsDiv = document.getElementById('guessButtons');
-  buttonsDiv.innerHTML='';
+  if(guessingIndex>=guessingQueue.length){ currentSongIndex++; playNextSong(); return; }
+  const currentGuesser=guessingQueue[guessingIndex];
+  const msg=`${currentGuesser}, ¿quién eligió esta canción?`;
+  const buttonsDiv=document.getElementById('guessButtons'); buttonsDiv.innerHTML='';
   players.forEach(p=>{
     if(p!==currentGuesser){
-      const btn = document.createElement('button');
-      btn.textContent=p;
+      const btn=document.createElement('button'); btn.textContent=p;
       btn.onclick=()=>{
-        // actualizar puntuación
-        if(p===allSongs[currentSongIndex].player){
-          scores[currentGuesser]+=2;
-          scores[p]-=1;
-        }
+        if(p===allSongs[currentSongIndex].player){ scores[currentGuesser]+=2; scores[p]-=1; }
         updateScores();
         guessingIndex++;
         askNextGuess();
@@ -394,35 +282,15 @@ function askNextGuess(){
 }
 
 function updateScores(){
-  const ul = document.getElementById('scoresList');
-  ul.innerHTML='';
-  players.forEach(p=>{
-    const li = document.createElement('li');
-    li.textContent=`${p}: ${scores[p]} pts`;
-    ul.appendChild(li);
-  });
+  const ul=document.getElementById('scoresList'); ul.innerHTML='';
+  players.forEach(p=>{ const li=document.createElement('li'); li.textContent=`${p}: ${scores[p]} pts`; ul.appendChild(li); });
 }
 
-// --- FUNCIONES AUXILIARES ---
-function shuffleArray(arr){
-  return arr.sort(()=>Math.random()-0.5);
-}
+function shuffleArray(arr){ return arr.sort(()=>Math.random()-0.5); }
 
-// --- MENU ---
-function restartGame(){
-  location.reload();
-}
-
-function editPlayers(){
-  document.getElementById('videoArea').style.display='none';
-  document.getElementById('playerInputArea').style.display='block';
-  players=[];
-  scores={};
-}
-
-function showHelp(){
-  showMessage('Lo siento, esta página está en desarrollo. Si necesitas ayuda, ve a preguntar a tu amig@ ChatGPT');
-}
+function restartGame(){ location.reload(); }
+function editPlayers(){ document.getElementById('videoArea').style.display='none'; document.getElementById('playerInputArea').style.display='block'; players=[]; scores={}; }
+function showHelp(){ showMessage('Lo siento, esta página está en desarrollo. Si necesitas ayuda, ve a preguntar a tu amig@ ChatGPT'); }
 </script>
 
 </body>
